@@ -1,0 +1,147 @@
+-- -- ================= TABLES =================
+
+-- CREATE TABLE users(
+-- 	id SERIAL PRIMARY KEY,
+-- 	full_name TEXT NOT NULL,
+-- 	email TEXT NOT NULL,
+-- 	group_name TEXT NOT NULL,
+-- 	created_at TIMESTAMP DEFAULT NOW()
+-- );
+
+-- CREATE TABLE subjects(
+-- 	id SERIAL PRIMARY KEY,
+-- 	title TEXT NOT NULL
+-- );
+
+-- CREATE TABLE tests(
+-- 	id SERIAL PRIMARY KEY,
+-- 	subject_id INT NOT NULL REFERENCES subjects(id),
+-- 	level TEXT NOT NULL,
+-- 	created_at TIMESTAMP DEFAULT NOW()
+-- );
+
+-- CREATE TABLE questions(
+-- 	id SERIAL PRIMARY KEY,
+-- 	test_id INT NOT NULL REFERENCES tests(id),
+-- 	question_text TEXT NOT NULL,
+-- 	correct_answer TEXT NOT NULL
+-- );
+
+-- CREATE TABLE attempts(
+-- 	id SERIAL PRIMARY KEY,
+-- 	user_id INT NOT NULL REFERENCES users(id),
+-- 	test_id INT NOT NULL REFERENCES tests(id),
+-- 	score INT NOT NULL,
+-- 	status TEXT NOT NULL DEFAULT 'finished',
+-- 	created_at TIMESTAMP DEFAULT NOW()
+-- );
+
+-- -- ================= SUBJECTS =================
+
+-- INSERT INTO subjects(title)
+-- VALUES
+-- ('Python'),
+-- ('Java'),
+-- ('JS'),
+-- ('SQL'),
+-- ('Databases');
+
+-- -- ================= USERS =================
+
+-- INSERT INTO users(full_name, email, group_name)
+-- SELECT 
+-- 	'Student' || i,
+-- 	'student' || i || '@mail.com',
+-- 	'Group' || ((i % 10) + 1)
+-- FROM generate_series(1, 10000) i;
+
+-- -- ================= TESTS =================
+
+-- INSERT INTO tests(subject_id, level)
+-- SELECT 
+-- 	((i % 5) + 1),
+-- 	CASE 
+-- 		WHEN i % 3 = 0 THEN 'easy'
+-- 		WHEN i % 3 = 1 THEN 'medium'
+-- 		ELSE 'hard'
+-- 	END
+-- FROM generate_series(1,50000) i;
+
+-- -- ================= QUESTIONS =================
+
+-- INSERT INTO questions(test_id, question_text, correct_answer)
+-- SELECT 
+-- 	((i % 50000) + 1),
+-- 	'Question text #' || i,
+-- 	'Correct answer #' || i
+-- FROM generate_series(1,200000) i;
+
+-- -- ================= ATTEMPTS =================
+
+-- INSERT INTO attempts(user_id, test_id, score, status)
+-- SELECT
+-- 	((i % 10000) + 1),
+-- 	((i % 50000) + 1),
+-- 	(random() * 100)::int,
+-- 	CASE 
+-- 		WHEN i % 5 = 0 THEN 'in_progress'
+-- 		ELSE 'finished'
+-- 	END
+-- FROM generate_series(1,6000) i;
+
+-- CREATE INDEX users_email ON users(email);
+
+
+-- EXPLAIN ANALYZE
+-- SELECT *
+-- FROM users
+-- WHERE email = 'student5000@mail.com';
+
+-- CREATE INDEX users_attempts ON attempts(user_id);
+
+-- EXPLAIN ANALYZE
+-- SELECT *
+-- FROM attempts
+-- WHERE user_id = 25000;
+
+-- CREATE INDEX Attempts_users_created_at ON attempts(user_id, created_at DESC);
+
+-- EXPLAIN ANALYZE
+-- SELECT *
+-- FROM attempts
+-- WHERE user_id = 25000
+-- ORDER BY created_at DESC;
+
+
+-- CREATE INDEX idx_attempts_status ON attempts(id) WHERE status = 'in progress';
+
+-- EXPLAIN ANALYZE
+-- SELECT *
+-- FROM attempts
+-- WHERE status = 'in_progress';
+
+
+-- CREATE INDEX idx_attempts_score ON attempts(score, created_at DESC);
+-- CREATE INDEX subject_title ON subjects(title);
+
+
+-- EXPLAIN ANALYZE
+-- SELECT 
+--     u.full_name,
+--     s.title AS subject_title,
+--     a.score,
+--     a.created_at
+-- FROM attempts a
+-- JOIN users u ON u.id = a.user_id
+-- JOIN tests t ON t.id = a.test_id
+-- JOIN subjects s ON s.id = t.subject_id
+-- WHERE s.title = 'Python'
+-- ORDER BY a.score DESC;
+
+
+
+
+
+
+
+
