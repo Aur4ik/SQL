@@ -1,0 +1,163 @@
+Скорее всего не правильно просто гпт сказал делать так xD
+
+
+CREATE FUNCTION lessons_count_safe(p_course_id INT)
+RETURNS INT
+LANGUAGE SQL
+AS $$
+SELECT
+    CASE
+        WHEN EXISTS (SELECT 1 FROM courses WHERE id = p_course_id)
+        THEN (SELECT COUNT(*) FROM lessons WHERE course_id = p_course_id)
+        ELSE 0
+    END;
+$$;
+
+CREATE FUNCTION student_started_count(p_student INT, p_course INT)
+RETURNS INT
+LANGUAGE SQL
+AS $$
+SELECT COUNT(*)
+FROM progress pr
+JOIN lessons l ON l.id = pr.lesson_id
+WHERE pr.student_id = p_student
+AND l.course_id = p_course
+AND pr.status = 'in_progress';
+$$;
+
+
+CREATE FUNCTION student_avg_score_done(p_student INT, p_course INT)
+RETURNS NUMERIC
+LANGUAGE SQL
+AS $$
+SELECT COALESCE(ROUND(AVG(pr.score), 2), 0)
+FROM progress pr
+JOIN lessons l ON l.id = pr.lesson_id
+WHERE pr.student_id = p_student
+AND l.course_id = p_course
+AND pr.status = 'done';
+$$;
+
+
+CREATE FUNCTION student_course_lessons(p_student INT, p_course INT)
+RETURNS TABLE(
+position INT,
+lesson_title TEXT,
+status TEXT,
+score INT
+)
+LANGUAGE SQL
+AS $$
+SELECT
+l.position,
+l.title,
+COALESCE(pr.status,'not_started'),
+COALESCE(pr.score,0)
+
+FROM lessons l
+LEFT JOIN progress pr
+ON pr.lesson_id=l.id AND pr.student_id=p_student
+
+WHERE l.course_id=p_course
+ORDER BY l.position;
+$$;
+
+SELECT
+s.full_name,
+COUNT(*) AS done_count
+
+FROM progress pr
+JOIN students s ON s.id=pr.student_id
+
+WHERE pr.status='done'
+
+GROUP BY s.full_name
+ORDER BY done_count DESC
+LIMIT 3;
+
+SELECT
+s.full_name,
+COUNT(*) AS done_count
+
+FROM progress pr
+JOIN students s ON s.id=pr.student_id
+
+WHERE pr.status='done'
+
+GROUP BY s.full_name
+ORDER BY done_count DESC
+LIMIT 3;
+
+
+SELECT
+c.title AS course_title,
+l.title AS lesson_title,
+COUNT(*) AS in_progress_cnt
+
+FROM progress pr
+JOIN lessons l ON l.id=pr.lesson_id
+JOIN courses c ON c.id=l.course_id
+
+WHERE pr.status='in_progress'
+
+GROUP BY c.title,l.title
+HAVING COUNT(*) >= 2;
+
+
+
+
+CREATE FUNCTION best_course_for_student(p_student INT)
+RETURNS TABLE(
+course_id INT,
+course_title TEXT,
+completion_percent NUMERIC
+)
+LANGUAGE SQL
+AS $$
+SELECT
+c.id,
+c.title,
+
+ROUND(
+COUNT(CASE WHEN pr.status='done' THEN 1 END)::numeric
+/
+COUNT(l.id) * 100,2
+) AS completion_percent
+
+FROM enrollments e
+JOIN courses c ON c.id=e.course_id
+JOIN lessons l ON l.course_id=c.id
+LEFT JOIN progress pr
+ON pr.lesson_id=l.id AND pr.student_id=p_student
+
+WHERE e.student_id=p_student
+
+GROUP BY c.id,c.title
+ORDER BY completion_percent DESC
+LIMIT 1;
+$$;
+
+
+
+CREATE FUNCTION student_done_count(p_student INT, p_course INT)
+RETURNS INT
+LANGUAGE SQL
+AS $$
+SELECT COUNT(*)
+FROM progress pr
+WHERE pr.student_id=p_student
+AND pr.status='done'
+AND pr.lesson_id IN (
+SELECT id
+FROM lessons
+WHERE course_id=p_course
+);
+$$;
+
+
+
+
+
+
+
+
